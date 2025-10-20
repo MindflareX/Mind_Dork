@@ -9,18 +9,29 @@ import argparse
 import json
 import csv
 import sys
+import os
 from urllib.parse import quote_plus
 from datetime import datetime
 from dorks_database import ADVANCED_DORKS, SEARCH_ENGINES
 
 
 class MindDork:
-    def __init__(self, target, search_engine='google', output_format='txt'):
+    def __init__(self, target, search_engine='google', output_format='txt', output_dir=None):
         self.target = target.replace('https://', '').replace('http://', '').strip('/')
         self.base_target = self.target
         self.search_engine = search_engine.lower()
         self.output_format = output_format.lower()
         self.generated_dorks = {}
+
+        # Create organized output directory
+        if output_dir:
+            self.output_dir = output_dir
+        else:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            self.output_dir = f"results/{self.base_target.replace('.', '_')}_{timestamp}"
+
+        # Create output directory if it doesn't exist
+        os.makedirs(self.output_dir, exist_ok=True)
 
     def generate_dorks(self, categories=None):
         """Generate dorks for specified categories or all"""
@@ -53,9 +64,11 @@ class MindDork:
     def export_txt(self, filename=None):
         """Export dorks to TXT file"""
         if not filename:
-            filename = f"dorks_{self.base_target}_{self.search_engine}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            filename = f"{self.search_engine}_dorks.txt"
 
-        with open(filename, 'w', encoding='utf-8') as f:
+        filepath = os.path.join(self.output_dir, filename)
+
+        with open(filepath, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
             f.write(f"Mind Dork - Advanced Dorks for: {self.base_target}\n")
             f.write(f"Search Engine: {SEARCH_ENGINES.get(self.search_engine, {}).get('name', self.search_engine)}\n")
@@ -81,12 +94,14 @@ class MindDork:
                             f.write(f"   URL: {search_url}\n")
                     f.write("\n")
 
-        return filename
+        return filepath
 
     def export_json(self, filename=None):
         """Export dorks to JSON file"""
         if not filename:
-            filename = f"dorks_{self.base_target}_{self.search_engine}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            filename = f"{self.search_engine}_dorks.json"
+
+        filepath = os.path.join(self.output_dir, filename)
 
         output_data = {
             'target': self.base_target,
@@ -110,17 +125,19 @@ class MindDork:
                 ]
             }
 
-        with open(filename, 'w', encoding='utf-8') as f:
+        with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(output_data, f, indent=2, ensure_ascii=False)
 
-        return filename
+        return filepath
 
     def export_csv(self, filename=None):
         """Export dorks to CSV file"""
         if not filename:
-            filename = f"dorks_{self.base_target}_{self.search_engine}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            filename = f"{self.search_engine}_dorks.csv"
 
-        with open(filename, 'w', newline='', encoding='utf-8') as f:
+        filepath = os.path.join(self.output_dir, filename)
+
+        with open(filepath, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(['Category', 'Description', 'Dork', 'Search_URL'])
 
@@ -133,12 +150,14 @@ class MindDork:
                         self.get_search_url(dork) if self.search_engine else ''
                     ])
 
-        return filename
+        return filepath
 
     def export_html(self, filename=None):
         """Export dorks to HTML file"""
         if not filename:
-            filename = f"dorks_{self.base_target}_{self.search_engine}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+            filename = f"{self.search_engine}_report.html"
+
+        filepath = os.path.join(self.output_dir, filename)
 
         html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -377,10 +396,10 @@ class MindDork:
 </html>
 """
 
-        with open(filename, 'w', encoding='utf-8') as f:
+        with open(filepath, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
-        return filename
+        return filepath
 
     def export(self, filename=None):
         """Export based on specified format"""
@@ -449,7 +468,8 @@ Examples:
     parser.add_argument('-f', '--format', type=str, default='txt',
                        choices=['txt', 'json', 'csv', 'html'],
                        help='Output format (txt, json, csv, html) [default: txt]')
-    parser.add_argument('-o', '--output', type=str, help='Output filename')
+    parser.add_argument('-o', '--output', type=str, help='Output filename (optional, will use default if not specified)')
+    parser.add_argument('-d', '--output-dir', type=str, help='Output directory (default: results/target_timestamp/)')
     parser.add_argument('-c', '--categories', nargs='+', help='Specific categories to generate')
     parser.add_argument('--list-categories', action='store_true', help='List all available categories')
     parser.add_argument('--list-engines', action='store_true', help='List all supported search engines')
@@ -476,24 +496,46 @@ Examples:
     else:
         engines = [args.engine]
 
+    # Create a shared output directory for all engines
+    if args.output_dir:
+        output_dir = args.output_dir
+    else:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        clean_target = args.target.replace('https://', '').replace('http://', '').strip('/').replace('.', '_')
+        output_dir = f"results/{clean_target}_{timestamp}"
+
+    # Create the output directory
+    os.makedirs(output_dir, exist_ok=True)
+
+    print(f"\n{'='*80}")
+    print(f"Mind Dork - Advanced Dorking Tool")
+    print(f"{'='*80}")
+    print(f"Target: {args.target}")
+    print(f"Output Directory: {output_dir}")
+    print(f"{'='*80}\n")
+
     for engine in engines:
-        print(f"\nGenerating dorks for {engine.upper()}...")
+        print(f"[+] Generating dorks for {engine.upper()}...")
 
-        dorker = MindDork(args.target, engine, args.format)
+        dorker = MindDork(args.target, engine, args.format, output_dir=output_dir)
         dorker.generate_dorks(args.categories)
-        dorker.display_stats()
 
-        if args.output:
-            filename = args.output if len(engines) == 1 else f"{engine}_{args.output}"
-        else:
-            filename = None
+        output_file = dorker.export(args.output)
+        print(f"    Exported: {os.path.basename(output_file)}")
 
-        output_file = dorker.export(filename)
-        print(f"Dorks exported to: {output_file}")
-        print(f"Format: {args.format.upper()}")
+    print(f"\n{'='*80}")
+    print(f"All dorks saved to: {output_dir}/")
+    print(f"{'='*80}")
 
-        if args.format == 'html':
-            print(f"\nOpen {output_file} in your browser to view the results!")
+    # List all generated files
+    print(f"\nGenerated files:")
+    for file in sorted(os.listdir(output_dir)):
+        filepath = os.path.join(output_dir, file)
+        size = os.path.getsize(filepath)
+        print(f"  - {file} ({size:,} bytes)")
+
+    if args.format == 'html':
+        print(f"\nOpen the HTML files in your browser to view the results!")
 
 
 if __name__ == "__main__":

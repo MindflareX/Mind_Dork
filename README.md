@@ -27,7 +27,7 @@ No external dependencies required - uses Python standard library only!
 ### Basic Usage
 
 ```bash
-# Generate dorks for a target
+# Generate dorks for a target (outputs to organized folder)
 python3 mind_dork.py -t example.com
 
 # Generate dorks for specific search engine
@@ -36,8 +36,28 @@ python3 mind_dork.py -t example.com -e bing
 # Generate dorks with HTML output
 python3 mind_dork.py -t example.com -f html
 
-# Generate dorks for all search engines
+# Generate dorks for all search engines (all in one folder)
 python3 mind_dork.py -t example.com --all-engines
+```
+
+### Output Organization
+
+All outputs are automatically organized in folders:
+```
+results/
+  └── example_com_20231020_143022/
+      ├── google_report.html
+      ├── bing_report.html
+      ├── duckduckgo_report.html
+      ├── yahoo_report.html
+      └── yandex_report.html
+```
+
+Folder naming: `results/target_TIMESTAMP/`
+
+You can also specify a custom output directory:
+```bash
+python3 mind_dork.py -t example.com -d my_custom_folder
 ```
 
 ### Advanced Usage

@@ -30,6 +30,9 @@ dorks_*.csv
 dorks_*.html
 *.log
 
+# Results directory
+results/
+
 # IDE
 .vscode/
 .idea/
